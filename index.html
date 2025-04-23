@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarbonKarma - Browser Extension</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #fefce8;
+        }
+        
+        /* Neubrutalism theme */
+        .neo-card {
+            background-color: white;
+            border: 3px solid #000;
+            box-shadow: 5px 5px 0px #000;
+            transition: all 0.2s ease;
+        }
+        
+        .neo-button {
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0px #000;
+            transition: all 0.2s ease;
+            transform: translateY(0);
+        }
+        
+        .neo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 5px 5px 0px #000;
+        }
+        
+        .neo-button:active {
+            transform: translateY(0);
+            box-shadow: 2px 2px 0px #000;
+        }
+        
+        .carbon-meter {
+            width: 100%;
+            height: 16px;
+            background: #e2e8f0;
+            border: 2px solid #000;
+            overflow: hidden;
+        }
+        
+        .carbon-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            transition: width 0.3s ease;
+        }
+        
+        .badge {
+            transition: transform 0.3s ease;
+            border: 2px solid #000;
+            box-shadow: 3px 3px 0px #000;
+        }
+        
+        .badge:hover {
+            transform: scale(1.05);
+        }
+        
+        .activity-card {
+            border: 2px solid #000;
+            box-shadow: 2px 2px 0px #000;
+        }
+        
+        .popup {
+            width: 350px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="popup min-h-screen p-4">
+        <div class="neo-card p-5 rounded-xl">
+            <!-- Header with Icon -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-green-500 border-2 border-black">
+                        <i class="bi bi-tree-fill text-xl text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold">CarbonKarma</h1>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block px-3 py-1 bg-green-100 text-green-800 border-2 border-black rounded-full text-sm font-semibold">Active</span>
+                </div>
+            </div>
+
+            <!-- Real-time Tracking -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-3 flex items-center">
+                    <i class="bi bi-graph-up-arrow mr-2 text-green-600"></i>
+                    Real-time Impact
+                </h2>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="p-4 border-2 border-black rounded-lg bg-blue-50">
+                        <p class="text-xs font-medium text-gray-600 mb-1">Current</p>
+                        <p class="text-lg font-bold text-blue-700" id="currentEmission">0g CO₂</p>
+                    </div>
+                    <div class="p-4 border-2 border-black rounded-lg bg-green-50">
+                        <p class="text-xs font-medium text-gray-600 mb-1">Goal</p>
+                        <p class="text-lg font-bold text-green-700" id="dailyGoal">500g CO₂</p>
+                    </div>
+                    <div class="p-4 border-2 border-black rounded-lg bg-yellow-50">
+                        <p class="text-xs font-medium text-gray-600 mb-1">Streak</p>
+                        <p class="text-lg font-bold text-yellow-700" id="streak">0 days</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="mb-6">
+                <div class="flex justify-between mb-2">
+                    <h2 class="text-base font-bold">Daily Progress</h2>
+                    <p class="text-sm" id="progressPercent">0%</p>
+                </div>
+                <div class="carbon-meter rounded-md">
+                    <div class="carbon-progress" id="progressBar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Activities -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-3 flex items-center">
+                    <i class="bi bi-activity mr-2 text-red-600"></i>
+                    Current Activities
+                </h2>
+                <div class="space-y-3" id="activitiesList">
+                    <!-- Activities will be dynamically added here -->
+                    <div class="flex items-center justify-between p-2 px-3 activity-card bg-gray-50 rounded-lg">
+                        <span class="text-gray-700">Starting up...</span>
+                        <span class="text-gray-600">0g CO₂/min</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Suggestions -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-3 flex items-center">
+                    <i class="bi bi-lightbulb mr-2 text-amber-500"></i>
+                    AI Suggestions
+                </h2>
+                <div class="p-4 border-2 border-black rounded-lg bg-gray-50" id="aiSuggestions">
+                    <div class="flex items-start gap-3">
+                        <i class="bi bi-robot text-2xl text-indigo-600"></i>
+                        <p class="text-sm text-gray-700">
+                            Welcome! I'll analyze your browsing patterns to suggest eco-friendly habits.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div>
+                <h2 class="text-lg font-bold mb-3 flex items-center">
+                    <i class="bi bi-award mr-2 text-purple-600"></i>
+                    Achievements
+                </h2>
+                <div class="grid grid-cols-2 gap-3" id="badges">
+                    <!-- Badges will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Settings Button -->
+            <div class="mt-6 flex justify-end">
+                <button id="settingsBtn" class="neo-button flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-bold">
+                    <i class="bi bi-gear-fill"></i>
+                    Settings
+                </button>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                <div class="neo-card bg-white p-5 rounded-xl w-full max-w-xs">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold">Settings</h2>
+                        <button id="closeSettingsBtn" class="text-xl">&times;</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium">Daily Carbon Goal (g CO₂)</label>
+                        <input id="goalInput" type="number" min="100" max="1000" step="50" value="500" 
+                            class="w-full p-2 border-2 border-black rounded-lg">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium">Notifications</label>
+                        <div class="flex items-center">
+                            <input id="notificationToggle" type="checkbox" checked 
+                                class="w-5 h-5 border-2 border-black">
+                            <label for="notificationToggle" class="ml-2 text-sm">Enable notifications</label>
+                        </div>
+                    </div>
+                    
+                    <button id="saveSettingsBtn" class="w-full neo-button px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-bold">
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CarbonKarma {
+            constructor() {
+                this.currentEmission = 0;
+                this.dailyGoal = 500; // in grams
+                this.streak = 0;
+                this.activities = new Map();
+                this.badges = new Set();
+                this.notificationsEnabled = true;
+                this.setupEventListeners();
+                this.init();
+            }
+
+            setupEventListeners() {
+                document.getElementById('settingsBtn').addEventListener('click', () => {
+                    document.getElementById('settingsModal').classList.remove('hidden');
+                });
+                
+                document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+                    document.getElementById('settingsModal').classList.add('hidden');
+                });
+                
+                document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+                    this.saveSettings();
+                });
+            }
+
+            saveSettings() {
+                const goalInput = document.getElementById('goalInput');
+                const notificationToggle = document.getElementById('notificationToggle');
+                
+                if (goalInput && notificationToggle) {
+                    this.dailyGoal = parseInt(goalInput.value) || 500;
+                    this.notificationsEnabled = notificationToggle.checked;
+                    
+                    // Show notification
+                    this.showNotification('Settings saved!', 'Your new carbon settings have been applied.', 'success');
+                    
+                    // Update UI
+                    this.updateUI();
+                    
+                    // Hide modal
+                    document.getElementById('settingsModal').classList.add('hidden');
+                }
+            }
+
+            init() {
+                this.updateUI();
+                this.trackBrowsingActivity();
+                this.simulateAISuggestions();
+                
+                // Add some default badges to show initially
+                this.addEmptyBadge("Carbon Newbie", "Get started with carbon tracking", "bi-seedling");
+                this.addEmptyBadge("Tab Master", "Keep your tabs under control", "bi-window-stack");
+                
+                setInterval(() => this.updateEmissions(), 1000);
+                
+                // Show welcome notification
+                setTimeout(() => {
+                    this.showNotification('CarbonKarma is active!', 'We are now tracking your browsing carbon footprint.', 'info');
+                }, 2000);
+            }
+
+            trackBrowsingActivity() {
+                // Simulate tracking inactive tabs
+                this.simulateInactiveTabs();
+                
+                // Simulate YouTube background playback detection
+                this.simulateYouTubeUsage();
+                
+                // Simulate search activities
+                this.simulateSearchActivities();
+                
+                // Simulate idle browsing
+                this.simulateIdleBrowsing();
+            }
+
+            simulateInactiveTabs() {
+                setInterval(() => {
+                    const inactiveTabs = Math.floor(Math.random() * 8) + 1;
+                    const carbonCost = inactiveTabs * 1.5;
+                    this.activities.set('Inactive Tabs', carbonCost);
+                    this.updateActivitiesList();
+                }, 8000);
+            }
+
+            simulateYouTubeUsage() {
+                setInterval(() => {
+                    const isYTBackground = Math.random() > 0.6;
+                    if (isYTBackground) {
+                        const carbonCost = 5 + Math.floor(Math.random() * 3);
+                        this.activities.set('YouTube Background', carbonCost);
+                        if (Math.random() > 0.8 && this.notificationsEnabled) {
+                            this.showNotification(
+                                'YouTube in background', 
+                                'Consider turning off video if only listening to audio',
+                                'warning'
+                            );
+                        }
+                    } else {
+                        this.activities.delete('YouTube Background');
+                    }
+                    this.updateActivitiesList();
+                }, 12000);
+            }
+
+            simulateSearchActivities() {
+                setInterval(() => {
+                    const isSearching = Math.random() > 0.7;
+                    if (isSearching) {
+                        const carbonCost = 1 + Math.random() * 2;
+                        this.activities.set('Web Searches', parseFloat(carbonCost.toFixed(1)));
+                    } else {
+                        this.activities.delete('Web Searches');
+                    }
+                    this.updateActivitiesList();
+                }, 15000);
+            }
+
+            simulateIdleBrowsing() {
+                setInterval(() => {
+                    const isIdle = Math.random() > 0.5;
+                    if (isIdle) {
+                        const carbonCost = Math.random() * 3;
+                        this.activities.set('Browser Idling', parseFloat(carbonCost.toFixed(1)));
+                    } else {
+                        this.activities.delete('Browser Idling');
+                    }
+                    this.updateActivitiesList();
+                }, 20000);
+            }
+
+            simulateAISuggestions() {
+                const suggestions = [
+                    {
+                        text: "Consider reducing the number of inactive tabs to save up to 10g CO₂ per hour",
+                        icon: "bi-window-x"
+                    },
+                    {
+                        text: "Turning off video for YouTube audio content can reduce carbon footprint by up to 40%",
+                        icon: "bi-youtube"
+                    },
+                    {
+                        text: "Using browser bookmarks instead of keeping tabs open could save energy consumption",
+                        icon: "bi-bookmark-plus"
+                    },
+                    {
+                        text: "Dark mode can reduce screen energy consumption by 30% on OLED screens",
+                        icon: "bi-moon-stars"
+                    },
+                    {
+                        text: "Try using browser cache more effectively to reduce redundant data transfers",
+                        icon: "bi-speedometer"
+                    },
+                    {
+                        text: "Consider using a search engine that plants trees for your searches",
+                        icon: "bi-search"
+                    }
+                ];
+                
+                setInterval(() => {
+                    const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+                    document.getElementById('aiSuggestions').innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <i class="bi ${suggestion.icon} text-2xl text-indigo-600"></i>
+                            <p class="text-sm text-gray-700">${suggestion.text}</p>
+                        </div>
+                    `;
+                }, 15000);
+            }
+
+            updateEmissions() {
+                let totalEmission = 0;
+                this.activities.forEach(value => totalEmission += value);
+                this.currentEmission = parseFloat(totalEmission.toFixed(1));
+                this.updateUI();
+                this.checkAchievements();
+                
+                // Simulate streak incrementation
+                if (Math.random() > 0.995) {
+                    this.streak++;
+                    this.updateUI();
+                    this.showNotification(
+                        'Streak increased!', 
+                        `You're now on a ${this.streak}-day streak. Keep it up!`,
+                        'success'
+                    );
+                }
+            }
+
+            updateUI() {
+                document.getElementById('currentEmission').textContent = `${this.currentEmission}g CO₂`;
+                document.getElementById('dailyGoal').textContent = `${this.dailyGoal}g CO₂`;
+                document.getElementById('streak').textContent = `${this.streak} days`;
+                
+                const progress = Math.min((this.currentEmission / this.dailyGoal) * 100, 100);
+                document.getElementById('progressBar').style.width = `${progress.toFixed(1)}%`;
+                document.getElementById('progressPercent').textContent = `${progress.toFixed(1)}%`;
+                
+                // Change progress bar color based on progress
+                const progressBar = document.getElementById('progressBar');
+                if (progress > 80) {
+                    progressBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+                } else if (progress > 50) {
+                    progressBar.style.background = 'linear-gradient(90deg, #f97316, #ea580c)';
+                } else {
+                    progressBar.style.background = 'linear-gradient(90deg, #22c55e, #16a34a)';
+                }
+            }
+
+            updateActivitiesList() {
+                const activitiesList = document.getElementById('activitiesList');
+                activitiesList.innerHTML = '';
+                
+                if (this.activities.size === 0) {
+                    const activityEl = document.createElement('div');
+                    activityEl.className = 'flex items-center justify-between p-2 px-3 activity-card bg-gray-50 rounded-lg';
+                    activityEl.innerHTML = `
+                        <span class="text-gray-700">No active emissions</span>
+                        <span class="text-gray-600">0g CO₂/min</span>
+                    `;
+                    activitiesList.appendChild(activityEl);
+                    return;
+                }
+                
+                this.activities.forEach((emission, activity) => {
+                    const activityEl = document.createElement('div');
+                    activityEl.className = 'flex items-center justify-between p-2 px-3 activity-card bg-gray-50 rounded-lg';
+                    
+                    let icon = 'bi-circle';
+                    
+                    switch(activity) {
+                        case 'Inactive Tabs':
+                            icon = 'bi-window-stack';
+                            break;
+                        case 'YouTube Background':
+                            icon = 'bi-youtube';
+                            break;
+                        case 'Web Searches':
+                            icon = 'bi-search';
+                            break;
+                        case 'Browser Idling':
+                            icon = 'bi-hourglass-split';
+                            break;
+                        default:
+                            icon = 'bi-circle';
+                    }
+                    
+                    activityEl.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <i class="bi ${icon} text-red-500"></i>
+                            <span class="text-gray-700">${activity}</span>
+                        </div>
+                        <span class="text-sm font-medium text-red-600">${emission}g CO₂/min</span>
+                    `;
+                    activitiesList.appendChild(activityEl);
+                });
+            }
+
+            checkAchievements() {
+                const achievements = [
+                    { 
+                        name: 'Carbon Saver', 
+                        description: 'Stay under your daily goal', 
+                        condition: () => this.currentEmission < this.dailyGoal / 2, 
+                        icon: 'bi-award' 
+                    },
+                    { 
+                        name: 'Week Warrior', 
+                        description: '7 day streak achieved!', 
+                        condition: () => this.streak >= 7, 
+                        icon: 'bi-trophy' 
+                    },
+                    { 
+                        name: 'Tab Master', 
+                        description: 'Kept tabs under control', 
+                        condition: () => !this.activities.has('Inactive Tabs'), 
+                        icon: 'bi-window-dock' 
+                    },
+                    { 
+                        name: 'Media Optimizer', 
+                        description: 'Optimized media streaming', 
+                        condition: () => !this.activities.has('YouTube Background'), 
+                        icon: 'bi-camera-video' 
+                    },
+                    { 
+                        name: 'Earth Guardian', 
+                        description: 'Consistently low emissions', 
+                        condition: () => this.activities.size < 2 && this.currentEmission < 10, 
+                        icon: 'bi-globe' 
+                    }
+                ];
+
+                achievements.forEach(achievement => {
+                    if (achievement.condition() && !this.badges.has(achievement.name)) {
+                        this.badges.add(achievement.name);
+                        this.updateBadges(achievement);
+                        
+                        if (this.notificationsEnabled) {
+                            this.showNotification(
+                                'New Achievement Unlocked!', 
+                                `${achievement.name}: ${achievement.description}`, 
+                                'success'
+                            );
+                        }
+                    }
+                });
+            }
+
+            updateBadges(newAchievement = null) {
+                const badgesContainer = document.getElementById('badges');
+                
+                if (newAchievement) {
+                    // Add only the new badge
+                    const badgeEl = document.createElement('div');
+                    badgeEl.className = 'badge p-3 rounded-lg text-center bg-yellow-50';
+                    badgeEl.innerHTML = `
+                        <i class="bi ${newAchievement.icon} text-2xl text-yellow-600 mb-2"></i>
+                        <p class="text-xs font-bold text-gray-800">${newAchievement.name}</p>
+                        <p class="text-xs text-gray-600">${newAchievement.description}</p>
+                    `;
+                    badgesContainer.appendChild(badgeEl);
+                } else {
+                    // Reset and add all badges
+                    badgesContainer.innerHTML = '';
+                    this.badges.forEach(badge => {
+                        const badgeEl = document.createElement('div');
+                        badgeEl.className = 'badge p-3 rounded-lg text-center bg-yellow-50';
+                        badgeEl.innerHTML = `
+                            <i class="bi bi-award text-2xl text-yellow-600 mb-2"></i>
+                            <p class="text-xs font-bold text-gray-800">${badge}</p>
+                        `;
+                        badgesContainer.appendChild(badgeEl);
+                    });
+                }
+            }
+            
+            addEmptyBadge(name, description, icon) {
+                const badgesContainer = document.getElementById('badges');
+                const badgeEl = document.createElement('div');
+                badgeEl.className = 'badge p-3 rounded-lg text-center bg-gray-100';
+                badgeEl.innerHTML = `
+                    <i class="bi ${icon} text-2xl text-gray-400 mb-2"></i>
+                    <p class="text-xs font-bold text-gray-600">${name}</p>
+                    <p class="text-xs text-gray-500">${description}</p>
+                `;
+                badgesContainer.appendChild(badgeEl);
+            }
+            
+            showNotification(title, message, type = 'info') {
+                if (!this.notificationsEnabled) return;
+                
+                // Create notification element
+                const notification = document.createElement('div');
+                
+                // Set classes based on type
+                let bgColor, borderColor, iconClass;
+                switch (type) {
+                    case 'success':
+                        bgColor = 'bg-green-50';
+                        borderColor = 'border-green-500';
+                        iconClass = 'bi-check-circle-fill text-green-500';
+                        break;
+                    case 'warning':
+                        bgColor = 'bg-amber-50';
+                        borderColor = 'border-amber-500';
+                        iconClass = 'bi-exclamation-triangle-fill text-amber-500';
+                        break;
+                    case 'error':
+                        bgColor = 'bg-red-50';
+                        borderColor = 'border-red-500';
+                        iconClass = 'bi-x-circle-fill text-red-500';
+                        break;
+                    default:
+                        bgColor = 'bg-blue-50';
+                        borderColor = 'border-blue-500';
+                        iconClass = 'bi-info-circle-fill text-blue-500';
+                }
+                
+                notification.className = `fixed top-4 right-4 p-4 rounded-lg border-2 border-black ${bgColor} shadow-lg max-w-xs transform transition-transform duration-300 translate-x-full`;
+                notification.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i class="bi ${iconClass} text-xl"></i>
+                        <div>
+                            <h3 class="font-bold text-sm">${title}</h3>
+                            <p class="text-xs text-gray-700">${message}</p>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Animate in
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-full');
+                }, 100);
+                
+                // Remove after 4 seconds
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 4000);
+            }
+        }
+
+        // Initialize the tracker when the extension is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const carbonKarma = new CarbonKarma();
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
